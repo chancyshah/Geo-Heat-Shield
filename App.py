@@ -1,233 +1,78 @@
 import streamlit as st
 import folium
-import requests
 import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 from folium.plugins import HeatMap
+import branca.colormap as cm
+import plotly.express as px
+from function import read_excel, filter_city_data ,fetch_osm_data , get_bounding_box, get_route, adjust_route, get_temperature_at_point, adjust_point
+from function import generate_conditions, get_weather_data, determine_heat_index , get_marker_color , get_weather_data_for_localities ,color_heat_index
+import requests
+from streamlit_searchbox import st_searchbox
 
-# Function to read the Excel file
-def read_excel(file):
-    return pd.read_excel(file)
+st.set_page_config(layout="wide")
+ 
+uploaded_file = 'E:/Geo-Heat Shield/Weather_Station_Id.xlsx'  # Replace with the path to your file
 
-# Function to filter data based on city and device type
-def filter_city_data(df, city_name):
-    return df[(df['cityName'] == city_name) & (df['device_type'] == "1 - Automated weather system")]
-
-# Example usage
-uploaded_file = 'C:/Users/Chancy/Desktop/Weather_Station_Id.xlsx'  # Replace with the path to your file
+api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'
 
 df = read_excel(uploaded_file)
-
 
 # List of cities for the dropdown
 cities = ['Select City', 'Delhi NCR', 'Kolkata', 'Mumbai', 'Bengaluru', 'Pune', 'Hyderabad', 'Chennai']
 
 st.title('Geo-Heat Shield: A Geospatial Approach to Heatwave Resilience')
 
-# Dropdown to select city
 selected_city = st.sidebar.selectbox('Select a city', cities)
 
 # Dictionary of city coordinates
 city_coordinates = {
-    'Delhi NCR': (28.630630, 77.220640),
+    'Delhi NCR': (28.676018, 77.208446),
     'Kolkata': (22.5744, 88.3629),
-    'Mumbai': (19.0760, 72.8777),
+    'Mumbai': (19.108639,72.874437),
     'Bengaluru': (13.040495, 77.569420), 
     'Pune': (18.5204, 73.8567),
-    'Hyderabad': (17.4065, 78.4772),
+    'Hyderabad': (17.392120, 78.494443),
     'Chennai': (13.0843, 80.2705)
 }
 
-# Weather API URL and headers
-url = 'https://weatherunion.com/gw/weather/external/v0/get_weather_data'
-headers = {
-    'x-zomato-api-key': '6e3fc4ad038dfe1c329e91503d86d672'
-}
-
-# Function to fetch weather data for a given location
-def get_weather_data(latitude, longitude):
-    params = {
-        'latitude': latitude,
-        'longitude': longitude
-    }
-    response = requests.get(url, params=params, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
-
-def determine_heat_index(temp, humidity):
-    if temp is None or humidity is None:
-        return "N/A"
-
-    # Ensure temperature and humidity are converted to float
-    try:
-        temp = float(temp)
-        humidity = float(humidity)
-    except ValueError:
-        return "N/A"
-
-    #print(f"Temp: {temp}, Humidity: {humidity}")  # Debug line
-
-    if humidity < 40:
-        if temp < 26:
-            return "Safe"
-        elif 27 <= temp <= 32:
-            return "Caution"
-        elif 33 <= temp <= 36:
-            return "Extreme Caution"
-        elif 37 <= temp <= 41:
-            return "Danger"
-        elif 42 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 45:
-        if 27 <= temp <= 31:
-            return "Caution"
-        elif 32 <= temp <= 35:
-            return "Extreme Caution"
-        elif 36 <= temp <= 40:
-            return "Danger"
-        elif 41 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 50:
-        if 27 <= temp <= 30:
-            return "Caution"
-        elif 31 <= temp <= 34:
-            return "Extreme Caution"
-        elif 35 <= temp <= 39:
-            return "Danger"
-        elif 40 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 55:
-        if 27 <= temp <= 30:
-            return "Caution"
-        elif 31 <= temp <= 33:
-            return "Extreme Caution"
-        elif 34 <= temp <= 38:
-            return "Danger"
-        elif 39 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 60:
-        if 27 <= temp <= 29:
-            return "Caution"
-        elif 30 <= temp <= 32:
-            return "Extreme Caution"
-        elif 33 <= temp <= 37:
-            return "Danger"
-        elif 38 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 65:
-        if 27 <= temp <= 29:
-            return "Caution"
-        elif 30 <= temp <= 32:
-            return "Extreme Caution"
-        elif 33 <= temp <= 36:
-            return "Danger"
-        elif 37 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 70:
-        if 27 <= temp <= 28:
-            return "Caution"
-        elif 29 <= temp <= 31:
-            return "Extreme Caution"
-        elif 32 <= temp <= 35:
-            return "Danger"
-        elif 36 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 75:
-        if 27 <= temp <= 28:
-            return "Caution"
-        elif 29 <= temp <= 31:
-            return "Extreme Caution"
-        elif 32 <= temp <= 35:
-            return "Danger"
-        elif 36 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 80:
-        if temp <= 27:
-            return "Caution"
-        elif temp <= 28:
-            return "Extreme Caution"
-        elif 29 <= temp <= 30:
-            return "Danger"
-        elif 31 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 85:
-        if temp <= 27:
-            return "Caution"
-        elif 28 <= temp <= 30:
-            return "Extreme Caution"
-        elif 31 <= temp <= 33:
-            return "Danger"
-        elif 34 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 90:
-        if temp <= 27:
-            return "Caution"
-        elif 28 <= temp <= 29:
-            return "Extreme Caution"
-        elif 30 <= temp <= 33:
-            return "Danger"
-        elif 34 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 95:
-        if temp <= 27:
-            return "Caution"
-        elif 28 <= temp <= 29:
-            return "Extreme Caution"
-        elif 30 <= temp <= 31:
-            return "Danger"
-        elif 32 <= temp <= 43:
-            return "Extreme Danger"
-    elif humidity <= 100:
-        if temp <= 27:
-            return "Caution"
-        elif 28 <= temp <= 29:
-            return "Extreme Caution"
-        elif temp == 30:
-            return "Danger"
-        elif 31 <= temp <= 43:
-            return "Extreme Danger"
-    
-    return "N/A"  # Default case if no condition is met
-
-
-# Function to get marker color based on heat index category
-def get_marker_color(heat_index):
-    if heat_index == "Safe":
-        return "lightgreen"
-    elif heat_index == "Caution":
-        return "green"
-    elif heat_index == "Extreme Caution":
-        return "orange"
-    elif heat_index == "Danger":
-        return "red"
-    elif heat_index == "Extreme Danger":
-        return "darkred"
-    else:
-        return "blue"  # Default color for "N/A"
-    
 # Create a folium Map instance centered on India
 initial_center = (20.5937, 78.9629)
-zoom_level = 5 if selected_city == 'Select City' else 10
+zoom_level = 4 if selected_city == 'Select City' else 10
 m = folium.Map(location=initial_center, zoom_start=zoom_level)
+
+weather_data_list = []
 
 # Fetch weather data and add markers for all cities
 for city, coords in city_coordinates.items():
     weather_data = get_weather_data(coords[0], coords[1])
     if weather_data and weather_data['message'] != 'temporarily unavailable':
         weather = weather_data.get('locality_weather_data', {})
+        #print(weather)
         temp = weather.get('temperature', 'N/A')
         humidity = weather.get('humidity', 'N/A')
         heat_index = determine_heat_index(temp, humidity) if temp != 'N/A' and humidity != 'N/A' else "N/A"
+        
+        # Store weather data in a dictionary
+        city_weather = {
+            'City': city,
+            'temperature': temp,
+            'humidity': humidity,
+            'Heat Index': heat_index
+        }
+        # Append dictionary to the list
+        weather_data_list.append(city_weather)
+       
         popup_content = f"<h3>Weather in {city}</h3>"
         popup_content += f"<p>Temperature: {temp} °C</p>"
         popup_content += f"<p>Humidity: {humidity}%</p>"
         popup_content += f"<p>Heat Index: {heat_index}</p>"
+        
     else:
         popup_content = f"<h3>Weather data not available for {city}</h3>"
         heat_index = "N/A"
+
     
     marker_color = get_marker_color(heat_index)
     
@@ -237,43 +82,92 @@ for city, coords in city_coordinates.items():
         tooltip=f"{city}",
         icon=folium.Icon(color=marker_color)
     ).add_to(m)
-
-# Function to call the weather API for each locality and save the response in the DataFrame
-def get_weather_data_for_localities(df):
-    url = 'https://weatherunion.com/gw/weather/external/v0/get_locality_weather_data'
-    headers = {
-        'x-zomato-api-key': '6e3fc4ad038dfe1c329e91503d86d672'
-    }
     
-    weather_data_list = []
-    for index, row in df.iterrows():
-        params = {
-            'locality_id': row['localityId']
-        }
-        response = requests.get(url, params=params, headers=headers)
+# Define HTML for the legend
+legend_html = '''
+<div style="
+    position: fixed;
+    bottom: 100px;
+    left: 10px;
+    width: 100px;
+    height: 100px;
+    background-color: white;
+    border:2px solid grey;
+    z-index:9999;
+    font-size:10px;
+    ">
+    &nbsp;<b>Heat Index Legend</b><br>
+    &nbsp;<i class="fa fa-circle" style="color:lightgreen"></i>&nbsp;Safe<br>
+    &nbsp;<i class="fa fa-circle" style="color:green"></i>&nbsp;Caution<br>
+    &nbsp;<i class="fa fa-circle" style="color:orange"></i>&nbsp;Extreme Caution<br>
+    &nbsp;<i class="fa fa-circle" style="color:red"></i>&nbsp;Danger<br>
+    &nbsp;<i class="fa fa-circle" style="color:darkred"></i>&nbsp;Extreme Danger<br>
+    &nbsp;<i class="fa fa-circle" style="color:lightblue"></i>&nbsp;Not Available
+    </div>
+'''
+
+# Create a Folium element from the legend HTML
+legend = folium.Element(legend_html)
+m.get_root().html.add_child(legend)
+
+
+# Function to get route from OpenRouteService API
+def get_route(start_coords, end_coords, api_key):
+    route_url = f"https://api.openrouteservice.org/v2/directions/driving-car?api_key={api_key}&start={start_coords[1]},{start_coords[0]}&end={end_coords[1]},{end_coords[0]}"
+    response = requests.get(route_url).json()
+    
+    if 'features' in response:
+        route_coords = response['features'][0]['geometry']['coordinates']
+        # Convert coordinates from (longitude, latitude) to (latitude, longitude)
+        route = [(coord[1], coord[0]) for coord in route_coords]
+        return route
+    
+    return None
+
+# Function to check if route passes through high-temperature locations within a buffer
+def route_passes_high_temp(route, high_temp_locations, buffer_radius_km=5):
+    buffer_radius_deg = buffer_radius_km / 111.32  # Approximate degrees per kilometer
+    
+    for point in route:
+        for _, location in high_temp_locations.iterrows():
+            distance = ((point[0] - location['latitude'])**2 + (point[1] - location['longitude'])**2)**0.5
+            if distance < buffer_radius_deg:
+                return True
+    return False
+
+
+def geocode_location(location):
+    
+    url = f"https://api.openrouteservice.org/geocode/search?api_key={api_key}&text={location}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise exception for bad response status
+
         if response.status_code == 200:
-            weather_data = response.json()
-            weather_data['localityId'] = row['localityId']
-            weather_data_list.append(weather_data)
+            data = response.json()
+            if data and 'features' in data and len(data['features']) > 0:
+                # Extract coordinates from the first result
+                coordinates = data['features'][0]['geometry']['coordinates']
+                return coordinates[1], coordinates[0]  # Latitude, Longitude
+            else:
+                print(f"No coordinates found for location: {location}")
         else:
-            print(f"Failed to retrieve data for {row['localityName']}: {response.status_code}")
-    
-    # Create a DataFrame from weather_data_list
-    weather_df = pd.DataFrame(weather_data_list)
-    
-    # Extract specific fields from locality_weather_data dictionary
-    weather_df['temperature'] = weather_df['locality_weather_data'].apply(lambda x: x.get('temperature', None))
-    weather_df['humidity'] = weather_df['locality_weather_data'].apply(lambda x: x.get('humidity', None))
-    weather_df['wind_speed'] = weather_df['locality_weather_data'].apply(lambda x: x.get('wind_speed', None))
-        
-    # Drop the original 'locality_weather_data' column
-    weather_df.drop(columns=['locality_weather_data'], inplace=True)
-    
-    # Drop rows where temperature or humidity is NaN
-    weather_df.dropna(subset=['temperature', 'humidity'], inplace=True)
-    return weather_df
+            print(f"Error fetching coordinates for {location}: Status Code {response.status_code}")
 
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error: {e}")
 
+    return None
+
+# Function to get location suggestions from OpenRouteService API
+def get_location_suggestions(query):
+    url = f"https://api.openrouteservice.org/geocode/autocomplete?api_key={api_key}&text={query}"
+    response = requests.get(url).json()
+    suggestions = [feature['properties']['label'] for feature in response['features']]
+    print(suggestions)
+    return suggestions
+    
 # If a specific city is selected, zoom to that city
 if selected_city != 'Select City':
     m.location = city_coordinates[selected_city]
@@ -284,252 +178,28 @@ if selected_city != 'Select City':
     #print(filtered_df)
 
     weather_df = get_weather_data_for_localities(filtered_df)
-    # Merge the weather data with the original filtered DataFrame
+    #Merge the weather data with the original filtered DataFrame
     merged_df = pd.merge(filtered_df, weather_df, on='localityId')
-   
-    conditions = [
-    (merged_df['temperature'] < 27) & (merged_df['humidity'] < 40),   
-    
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 27) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 28) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 29) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 30) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 31) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 32) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 33) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 34) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 35) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 36) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 37) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 38) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 39) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 40) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 41) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 42) & (merged_df['humidity'] <= 100),
-    
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 40),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 45),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 50),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 55),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 60),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 65),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 70),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 75),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 80),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 85),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 90),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 95),
-    (merged_df['temperature'] <= 43) & (merged_df['humidity'] <= 100),
+    """
+    # Sample data
+    data = {
+    'cityName': ['Hyderabad', 'Hyderabad', 'Hyderabad', 'Hyderabad', 'Hyderabad'],
+    'localityName': ['Banjara Hills', 'Medchal Road', 'Jeedimetla', 'Shamshabad', 'Serilingampally'],
+    'localityId': ['ZWL004079', 'ZWL007311', 'ZWL008208', 'ZWL008585', 'ZWL008890'],
+    'latitude': [17.419238, 17.637191, 17.495621, 17.257432, 17.485245],
+    'longitude': [78.432213, 78.475184, 78.390131, 78.371374, 78.362745],
+    'temperature': [30.38, 27.23, 30.40, 30.39, 29.65],
+    'humidity': [66.26, 79.25, 60.83, 58.52, 70.02],
+    'wind_speed': [0.23, 0.45, 1.25, 1.25, 2.75],
+    'feels_like': [38, 32, 36, 35, 36]
+    }
 
-    ]
-    
+    # Create DataFrame
+    merged_df = pd.DataFrame(data)
+
+    # Display the DataFrame
+    print(merged_df)
+    """
     choices = [merged_df['temperature'], 
                27,27,27,28,28,28,29,29,30,30,31,31,32,
                28,28,28,29,29,30,31,31,32,33,34,35,36,
@@ -549,12 +219,268 @@ if selected_city != 'Select City':
                54,57,57,57,57,57,57,57,57,57,57,57,57,
                57,57,57,57,57,57,57,57,57,57,57,57,57]
     
+    conditions = generate_conditions(merged_df)
     merged_df['feels_like'] = np.select(conditions, choices, default=None)
+    merged_df['heat_index'] = merged_df.apply(lambda row: determine_heat_index(row['temperature'], row['humidity'])
+                                          if pd.notna(row['temperature']) and pd.notna(row['humidity']) else "N/A",
+                                          axis=1)
 
     print(merged_df)
+
+    #merged_df['feels_like'] = np.select(conditions, choices, default=None)
     heat_data = [[row['latitude'], row['longitude'], row['feels_like']] for index, row in merged_df.iterrows()]
-    HeatMap(heat_data).add_to(m)
+
+    # Define the colormap for the 'feels_like' temperature values
+    min_feels_like = merged_df['feels_like'].min()
+    max_feels_like = merged_df['feels_like'].max()
+    colormap = cm.LinearColormap(colors=['blue', 'green', 'yellow', 'orange', 'red'], 
+                                 vmin=min_feels_like, vmax=max_feels_like, 
+                                 caption='Feels Like Temperature')
+
+    # Add HeatMap
+    heatmap = HeatMap(heat_data, min_opacity=0.2, radius=50, blur=10, max_zoom=1)
+    heatmap_group = folium.FeatureGroup(name='Heat Map')
+    heatmap_group.add_child(heatmap)
+    m.add_child(heatmap_group)
+    colormap.add_to(m)
     
+    # Fetch and add public hospital data based on city bounding box
+    bbox = get_bounding_box(city_coordinates[selected_city])
+    
+    # Define tags and icons for additional OSM layers
+    amenities = {
+        "Hospital":{"tag": "amenity=hospital", "icon": "hospital"},
+       "Community Centres": {"tag": "amenity=community_centre", "icon": "home"},
+       "Drinking Water": {"tag": "amenity=drinking_water", "icon": "tint"},
+       "Parks": {"tag": "leisure=park", "icon": "tree"},
+       "Gardens": {"tag": "leisure=garden", "icon": "leaf"},
+       "Clinics": {"tag": "amenity=clinic", "icon": "plus-square"},
+       "Pharmacies": {"tag": "amenity=pharmacy", "icon": "medkit"}
+    }
+
+    # Fetch and add each amenity as a different layer
+    for amenity_name, amenity_info in amenities.items():
+       tag = amenity_info["tag"]
+       icon = amenity_info["icon"]
+       osm_data = fetch_osm_data(bbox, [tag])
+
+       # Logging to check fetched additional OSM data
+       #print(f"Fetched {amenity_name} Data:", osm_data)
+
+       amenity_group = folium.FeatureGroup(name=amenity_name, show=False)
+
+       for element in osm_data.get('elements', []):
+           lat = element.get('lat')
+           lon = element.get('lon')
+           if lat and lon:
+               folium.Marker(
+                   location=[lat, lon],
+                   popup=f"{amenity_name}: {element['tags'].get('name', 'N/A')}",
+                   icon=folium.Icon(color='blue', icon=icon)
+               ).add_to(amenity_group)
+
+       m.add_child(amenity_group)
+
+    # Add LayerControl to the map
+    folium.LayerControl().add_to(m)
+    
+    # Filter out locations with high temperatures
+    temperature_threshold = 35  # Define your temperature threshold
+    high_temp_locations = merged_df[merged_df['feels_like'] > temperature_threshold]
+    
+    st.sidebar.header("Route Finder")
+    # Sidebar inputs for start and end location
+    #start_location = st.sidebar.text_input("Start Location", "Charminar")
+    #end_location = st.sidebar.text_input("End Location", "Nandi Nagar")
+    # Button to trigger route calculation
+    # Sidebar inputs for start and end locations using st_searchbox
+
+    # Sidebar section
+    with st.sidebar:
+        start_location = st_searchbox(get_location_suggestions, placeholder="Start Location", key="start_location")
+        end_location = st_searchbox(get_location_suggestions, placeholder="End Location", key="end_location")
+        calculate_route = st.sidebar.button("Calculate Route")
+    
+    # Get coordinates for start and end locations
+    if calculate_route:
+        start_coords = geocode_location(start_location)
+        end_coords = geocode_location(end_location)
+    
+        if not start_coords or not end_coords:
+            st.sidebar.error("Could not find coordinates for one or both locations. Please try different place names.")
+        else:
+            api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'  # Replace with your actual OpenRouteService API key
+            original_route = get_route(start_coords, end_coords, api_key)
+        
+            if original_route:
+                if route_passes_high_temp(original_route, high_temp_locations):
+                    st.sidebar.warning("The original route passes through areas with high temperatures. Calculating alternative route...")
+                    
+                    # Attempt to calculate an alternative route that avoids high-temperature areas
+                    alternative_route = None
+                    for _, location in high_temp_locations.iterrows():
+                        new_start_coords = (location['latitude'], location['longitude'])
+                        new_end_coords = end_coords
+                        alternative_route = get_route(new_start_coords, new_end_coords, api_key)
+                    
+                        if alternative_route and not route_passes_high_temp(alternative_route, high_temp_locations):
+                            st.sidebar.success("Alternative route found and displayed.")
+                            original_route = alternative_route
+                            break
+                
+                    if not alternative_route:
+                        st.sidebar.error("Could not find an alternative route that avoids high-temperature areas. Displaying original route with warnings.")
+                
+                # Display the route on the map
+                folium.Marker(location=start_coords, popup=start_location, icon=folium.Icon(color='green')).add_to(m)
+                folium.Marker(location=end_coords, popup=end_location, icon=folium.Icon(color='red')).add_to(m)
+                folium.PolyLine(original_route, color='blue', weight=5, opacity=0.8).add_to(m)
+            else:    
+                st.sidebar.error("Could not fetch the route for the provided locations. Please try again.")
+    
+    
+# Render the map in Streamlit
+#map_data = st_folium(m, height=500, width=700)
+
 # Render the map using components.html
 map_html = m._repr_html_()
-components.html(map_html, height=500)
+components.html(map_html, height=500, width= 1000)
+
+weather_df = pd.DataFrame(weather_data_list)
+conditions = generate_conditions(weather_df)
+
+choices = [weather_df['temperature'], 
+           27,27,27,28,28,28,29,29,30,30,31,31,32,
+           28,28,28,29,29,30,31,31,32,33,34,35,36,
+           29,29,30,30,31,32,33,34,35,36,37,38,40,
+           30,30,31,32,33,34,35,36,38,39,41,42,44,
+           31,32,33,34,35,36,38,39,41,43,45,47,49,
+           32,33,35,36,37,39,40,42,44,47,49,51,56,
+           34,35,36,38,40,41,43,46,48,51,54,57,57,
+           35,37,38,40,42,44,47,49,52,55,55,55,55,
+           37,39,41,43,45,48,50,53,57,57,57,57,57,
+           39,41,43,46,48,51,54,58,58,58,58,58,58,
+           41,43,46,48,51,55,58,58,58,58,58,58,58,
+           43,46,49,52,55,59,59,59,59,59,59,59,59,
+           46,49,52,54,59,59,59,59,59,59,59,59,59,
+           48,51,55,58,58,58,58,58,58,58,58,58,58,
+           51,54,58,58,58,58,58,58,58,58,58,58,58,
+           54,57,57,57,57,57,57,57,57,57,57,57,57,
+           57,57,57,57,57,57,57,57,57,57,57,57,57]
+
+# Apply conditions to create a new column in the DataFrame
+weather_df['feels_like'] = np.select(conditions, choices, default=None)
+   
+
+if selected_city != 'Select City':
+    styled_df = merged_df.copy()
+    styled_df['heat_index'] = merged_df.apply(
+        lambda row: determine_heat_index(row['temperature'], row['humidity'])
+        if pd.notna(row['temperature']) and pd.notna(row['humidity']) else "N/A",
+        axis=1
+    )
+
+    # Create a container for the layout
+    container = st.container()
+
+    # Divide the container into a 2x2 grid using columns
+    col1, col2 = container.columns(2)
+
+    # Render styled dataframe in the first column
+    with col1:
+        st.write("### Heat Index")
+        # Apply the color mapping to the DataFrame
+        styled_df = styled_df.style.map(color_heat_index, subset=['heat_index'])
+        # Display the DataFrame in the placeholder
+        st.dataframe(styled_df)
+
+    with col2:
+        st.write("### Bar Chart for Feels Like Temperature")
+        bar_chart = px.bar(merged_df, x='localityName', y='temperature', title='Temperature by Locality')
+        st.plotly_chart(bar_chart)
+
+    with col1:
+        # Create and display the line chart in the placeholder
+        st.write("### Line Chart for Temperature and Feels Like Temperature")
+        line_chart = px.line(merged_df, x='localityName', y='humidity', title='Humidity by Locality')
+        st.plotly_chart(line_chart)
+
+    with col2:
+        st.write("### Scatter Plot for Temperature vs. Humidity")
+        # Create and display the scatter chart in the placeholder
+        scatter_chart = px.scatter(merged_df, x='temperature', y='humidity', color='localityName',
+                                   title='Temperature vs. Humidity')
+        st.plotly_chart(scatter_chart)
+    
+placeholder = st.empty()
+
+# Apply the color mapping to the dataframe
+styled_df = weather_df.style.map(color_heat_index, subset=['Heat Index'])
+#st.dataframe(styled_df)
+
+# Ensure the 'feels_like' column is numeric
+weather_df['feels_like'] = pd.to_numeric(weather_df['feels_like'], errors='coerce')
+
+# Transform data to long format for line chart
+long_df = pd.melt(weather_df, id_vars=['City'], value_vars=['temperature', 'feels_like'],
+                  var_name='Metric', value_name='Value')
+
+# Create a container for the layout
+container = st.container(height=None, border=None)
+
+# Divide the container into a 2x2 grid using columns
+col1, col2 = st.columns(2)
+
+
+# Render styled dataframe in the first row, first column
+with col1:
+    st.write("### Heat Index")
+    st.dataframe(styled_df)
+
+# Bar Chart for Feels Like Temperature in the first row, second column
+fig_bar = px.bar(
+    weather_df,
+    x='City',
+    y='feels_like',
+    color='Heat Index',
+    title='Feels Like Temperature by City',
+    labels={'feels_like': 'Feels Like Temperature (°C)'},
+    hover_data=['temperature', 'humidity']
+)
+with col2:
+    st.write("### Bar Chart for Feels Like Temperature")
+    st.plotly_chart(fig_bar)
+
+# Line Chart for Temperature and Feels Like Temperature in the second row, first column
+long_df = pd.melt(weather_df, id_vars=['City'], value_vars=['temperature', 'feels_like'], var_name='Metric', value_name='Value')
+fig_line = px.line(
+    long_df,
+    x='City',
+    y='Value',
+    color='Metric',
+    title='Temperature and Feels Like Temperature by City',
+    labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
+    markers=True
+)
+with col1:
+    st.write("### Line Chart for Temperature and Feels Like Temperature")
+    st.plotly_chart(fig_line)
+
+# Scatter Plot for Temperature vs. Humidity in the second row, second column
+fig_scatter = px.scatter(
+    weather_df,
+    x='temperature',
+    y='humidity',
+    color='City',
+    size='feels_like',
+    title='Temperature vs. Humidity',
+    labels={'temperature': 'Temperature (°C)', 'humidity': 'Humidity (%)'},
+    hover_data=['Heat Index']
+)
+with col2:
+    st.write("### Scatter Plot for Temperature vs. Humidity")
+    st.plotly_chart(fig_scatter)
+
+
+
+   
