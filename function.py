@@ -5,16 +5,50 @@ Created on Wed Jul  3 16:13:56 2024
 @author: Chancy
 """
 import requests
-import openrouteservice
-from shapely.geometry import shape
-import streamlit as st
 import pandas as pd
 
 # Weather API URL and headers
 url = 'https://weatherunion.com/gw/weather/external/v0/get_weather_data'
 headers = {
-    'x-zomato-api-key': '46e4d9836d551bc03d61c2be23556f3c'
+    'x-zomato-api-key': 'b16e52aa254f8eb99ddc98b642146ae4'
 }
+
+api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'
+
+# Function to call the weather API for each locality and save the response in the DataFrame
+def get_weather_data_for_localities(df):
+    url = 'https://weatherunion.com/gw/weather/external/v0/get_locality_weather_data'
+    headers = {
+        'x-zomato-api-key': 'b16e52aa254f8eb99ddc98b642146ae4'
+    }
+    
+    weather_data_list = []
+    for index, row in df.iterrows():
+        params = {
+            'locality_id': row['localityId']
+        }
+        response = requests.get(url, params=params, headers=headers)
+        if response.status_code == 200:
+            weather_data = response.json()
+            weather_data['localityId'] = row['localityId']
+            weather_data_list.append(weather_data)
+        else:
+            print(f"Failed to retrieve data for {row['localityName']}: {response.status_code}")
+    
+    # Create a DataFrame from weather_data_list
+    weather_df = pd.DataFrame(weather_data_list)
+    
+    # Extract specific fields from locality_weather_data dictionary
+    weather_df['temperature'] = weather_df['locality_weather_data'].apply(lambda x: x.get('temperature', None))
+    weather_df['humidity'] = weather_df['locality_weather_data'].apply(lambda x: x.get('humidity', None))
+    weather_df['wind_speed'] = weather_df['locality_weather_data'].apply(lambda x: x.get('wind_speed', None))
+        
+    # Drop the original 'locality_weather_data' column
+    weather_df.drop(columns=['locality_weather_data'], inplace=True)
+    
+    # Drop rows where temperature or humidity is NaN
+    weather_df.dropna(subset=['temperature', 'humidity'], inplace=True)
+    return weather_df
 
 def color_heat_index(val):
     return f'background-color: {get_marker_color(val)}'
@@ -45,48 +79,6 @@ def fetch_osm_data(bbox, tags):
 def get_bounding_box(center, radius=0.1):
     lat, lon = center
     return [lat-radius, lon-radius, lat+radius, lon+radius]
-
-# Function to generate the route using OpenRouteService
-def get_route(client, start, end):
-    coordinates = [start, end]
-    try:
-        routes = client.directions(
-            coordinates=coordinates,
-            profile='driving-car',
-            format='geojson'
-        )
-        return routes
-    except openrouteservice.exceptions.ApiError as e:
-        st.error(f"Error fetching route: {e}")
-        return None
-
-# Function to adjust the route to avoid high-temperature areas
-def adjust_route(route, heatmap_data, threshold):
-    line = shape(route['features'][0]['geometry'])
-    new_coords = []
-    for point in line.coords:
-        lat, lon = point[1], point[0]
-        temp = get_temperature_at_point(heatmap_data, lat, lon)
-        if temp and temp > threshold:
-            # Adjust point to avoid high temperature
-            lat, lon = adjust_point(lat, lon, heatmap_data, threshold)
-        new_coords.append([lon, lat])
-    route['features'][0]['geometry']['coordinates'] = new_coords
-    return route
-
-# Function to get temperature at a specific point
-def get_temperature_at_point(heatmap_data, lat, lon):
-    for data in heatmap_data:
-        if abs(data[0] - lat) < 0.01 and abs(data[1] - lon) < 0.01:  # Allow for small margin of error
-            return data[2]
-    return None
-
-# Function to adjust a point to avoid high temperature
-def adjust_point(lat, lon, heatmap_data, threshold):
-    for data in heatmap_data:
-        if data[2] <= threshold:
-            return data[0], data[1]
-    return lat, lon
 
 # Define the function to generate conditions
 def generate_conditions(merged_df):
@@ -521,37 +513,60 @@ def get_marker_color(heat_index):
     else:
         return "blue"  # Default color for "N/A"
     
-# Function to call the weather API for each locality and save the response in the DataFrame
-def get_weather_data_for_localities(df):
-    url = 'https://weatherunion.com/gw/weather/external/v0/get_locality_weather_data'
-    headers = {
-        'x-zomato-api-key': '70c5ad038be8ab5f0ca32ab0da764120'
-    }
+# Function to get route from OpenRouteService API
+def get_route(start_coords, end_coords, api_key):
+    route_url = f"https://api.openrouteservice.org/v2/directions/driving-car?api_key={api_key}&start={start_coords[1]},{start_coords[0]}&end={end_coords[1]},{end_coords[0]}"
+    response = requests.get(route_url).json()
     
-    weather_data_list = []
-    for index, row in df.iterrows():
-        params = {
-            'locality_id': row['localityId']
-        }
-        response = requests.get(url, params=params, headers=headers)
+    if 'features' in response:
+        route_coords = response['features'][0]['geometry']['coordinates']
+        # Convert coordinates from (longitude, latitude) to (latitude, longitude)
+        route = [(coord[1], coord[0]) for coord in route_coords]
+        return route
+    
+    return None
+
+# Function to check if route passes through high-temperature locations within a buffer
+def route_passes_high_temp(route, high_temp_locations, buffer_radius_km=2):
+    buffer_radius_deg = buffer_radius_km / 111.32  # Approximate degrees per kilometer
+    
+    for point in route:
+        for _, location in high_temp_locations.iterrows():
+            distance = ((point[0] - location['latitude'])**2 + (point[1] - location['longitude'])**2)**0.5
+            if distance < buffer_radius_deg:
+                return True
+    return False
+
+
+def geocode_location(location):
+    
+    url = f"https://api.openrouteservice.org/geocode/search?api_key={api_key}&text={location}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise exception for bad response status
+
         if response.status_code == 200:
-            weather_data = response.json()
-            weather_data['localityId'] = row['localityId']
-            weather_data_list.append(weather_data)
+            data = response.json()
+            if data and 'features' in data and len(data['features']) > 0:
+                # Extract coordinates from the first result
+                coordinates = data['features'][0]['geometry']['coordinates']
+                return coordinates[1], coordinates[0]  # Latitude, Longitude
+            else:
+                print(f"No coordinates found for location: {location}")
         else:
-            print(f"Failed to retrieve data for {row['localityName']}: {response.status_code}")
-    
-    # Create a DataFrame from weather_data_list
-    weather_df = pd.DataFrame(weather_data_list)
-    
-    # Extract specific fields from locality_weather_data dictionary
-    weather_df['temperature'] = weather_df['locality_weather_data'].apply(lambda x: x.get('temperature', None))
-    weather_df['humidity'] = weather_df['locality_weather_data'].apply(lambda x: x.get('humidity', None))
-    weather_df['wind_speed'] = weather_df['locality_weather_data'].apply(lambda x: x.get('wind_speed', None))
-        
-    # Drop the original 'locality_weather_data' column
-    weather_df.drop(columns=['locality_weather_data'], inplace=True)
-    
-    # Drop rows where temperature or humidity is NaN
-    weather_df.dropna(subset=['temperature', 'humidity'], inplace=True)
-    return weather_df
+            print(f"Error fetching coordinates for {location}: Status Code {response.status_code}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error: {e}")
+
+    return None
+
+# Function to get location suggestions from OpenRouteService API
+def get_location_suggestions(query):
+    url = f"https://api.openrouteservice.org/geocode/autocomplete?api_key={api_key}&text={query}"
+    response = requests.get(url).json()
+    suggestions = [feature['properties']['label'] for feature in response['features']]
+    print(suggestions)
+    return suggestions
+ 

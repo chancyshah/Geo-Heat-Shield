@@ -6,16 +6,14 @@ import numpy as np
 from folium.plugins import HeatMap
 import branca.colormap as cm
 import plotly.express as px
-from function import read_excel, filter_city_data ,fetch_osm_data , get_bounding_box, get_route, adjust_route, get_temperature_at_point, adjust_point
-from function import generate_conditions, get_weather_data, determine_heat_index , get_marker_color , get_weather_data_for_localities ,color_heat_index
-import requests
 from streamlit_searchbox import st_searchbox
+from function import read_excel, filter_city_data ,fetch_osm_data , get_bounding_box
+from function import generate_conditions, get_weather_data, determine_heat_index , get_marker_color , get_weather_data_for_localities ,color_heat_index
+from function import get_location_suggestions, geocode_location, route_passes_high_temp, get_route
 
 st.set_page_config(layout="wide")
  
 uploaded_file = 'E:/Geo-Heat Shield/Weather_Station_Id.xlsx'  # Replace with the path to your file
-
-api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'
 
 df = read_excel(uploaded_file)
 
@@ -110,64 +108,7 @@ legend_html = '''
 legend = folium.Element(legend_html)
 m.get_root().html.add_child(legend)
 
-
-# Function to get route from OpenRouteService API
-def get_route(start_coords, end_coords, api_key):
-    route_url = f"https://api.openrouteservice.org/v2/directions/driving-car?api_key={api_key}&start={start_coords[1]},{start_coords[0]}&end={end_coords[1]},{end_coords[0]}"
-    response = requests.get(route_url).json()
-    
-    if 'features' in response:
-        route_coords = response['features'][0]['geometry']['coordinates']
-        # Convert coordinates from (longitude, latitude) to (latitude, longitude)
-        route = [(coord[1], coord[0]) for coord in route_coords]
-        return route
-    
-    return None
-
-# Function to check if route passes through high-temperature locations within a buffer
-def route_passes_high_temp(route, high_temp_locations, buffer_radius_km=5):
-    buffer_radius_deg = buffer_radius_km / 111.32  # Approximate degrees per kilometer
-    
-    for point in route:
-        for _, location in high_temp_locations.iterrows():
-            distance = ((point[0] - location['latitude'])**2 + (point[1] - location['longitude'])**2)**0.5
-            if distance < buffer_radius_deg:
-                return True
-    return False
-
-
-def geocode_location(location):
-    
-    url = f"https://api.openrouteservice.org/geocode/search?api_key={api_key}&text={location}"
-
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise exception for bad response status
-
-        if response.status_code == 200:
-            data = response.json()
-            if data and 'features' in data and len(data['features']) > 0:
-                # Extract coordinates from the first result
-                coordinates = data['features'][0]['geometry']['coordinates']
-                return coordinates[1], coordinates[0]  # Latitude, Longitude
-            else:
-                print(f"No coordinates found for location: {location}")
-        else:
-            print(f"Error fetching coordinates for {location}: Status Code {response.status_code}")
-
-    except requests.exceptions.RequestException as e:
-        print(f"Request Error: {e}")
-
-    return None
-
-# Function to get location suggestions from OpenRouteService API
-def get_location_suggestions(query):
-    url = f"https://api.openrouteservice.org/geocode/autocomplete?api_key={api_key}&text={query}"
-    response = requests.get(url).json()
-    suggestions = [feature['properties']['label'] for feature in response['features']]
-    print(suggestions)
-    return suggestions
-    
+   
 # If a specific city is selected, zoom to that city
 if selected_city != 'Select City':
     m.location = city_coordinates[selected_city]
@@ -180,26 +121,7 @@ if selected_city != 'Select City':
     weather_df = get_weather_data_for_localities(filtered_df)
     #Merge the weather data with the original filtered DataFrame
     merged_df = pd.merge(filtered_df, weather_df, on='localityId')
-    """
-    # Sample data
-    data = {
-    'cityName': ['Hyderabad', 'Hyderabad', 'Hyderabad', 'Hyderabad', 'Hyderabad'],
-    'localityName': ['Banjara Hills', 'Medchal Road', 'Jeedimetla', 'Shamshabad', 'Serilingampally'],
-    'localityId': ['ZWL004079', 'ZWL007311', 'ZWL008208', 'ZWL008585', 'ZWL008890'],
-    'latitude': [17.419238, 17.637191, 17.495621, 17.257432, 17.485245],
-    'longitude': [78.432213, 78.475184, 78.390131, 78.371374, 78.362745],
-    'temperature': [30.38, 27.23, 30.40, 30.39, 29.65],
-    'humidity': [66.26, 79.25, 60.83, 58.52, 70.02],
-    'wind_speed': [0.23, 0.45, 1.25, 1.25, 2.75],
-    'feels_like': [38, 32, 36, 35, 36]
-    }
-
-    # Create DataFrame
-    merged_df = pd.DataFrame(data)
-
-    # Display the DataFrame
-    print(merged_df)
-    """
+    
     choices = [merged_df['temperature'], 
                27,27,27,28,28,28,29,29,30,30,31,31,32,
                28,28,28,29,29,30,31,31,32,33,34,35,36,
@@ -230,15 +152,34 @@ if selected_city != 'Select City':
     #merged_df['feels_like'] = np.select(conditions, choices, default=None)
     heat_data = [[row['latitude'], row['longitude'], row['feels_like']] for index, row in merged_df.iterrows()]
 
-    # Define the colormap for the 'feels_like' temperature values
+    # Define your fixed minimum and maximum 'feels_like' temperatures
+    min_feels_like = 26
+    max_feels_like = 43
+
+    # Define your colormap with fixed range and colors
+    colormap = cm.LinearColormap(colors=['blue','lightgreen', 'green', 'orange', 'red','darkred'],
+                             vmin=min_feels_like, vmax=max_feels_like,
+                             caption='Feels Like Temperature')
+        
+    min_opacity = 0.8
+    radius = 50
+    blur = 10
+
+    # Define the range of feels_like values
     min_feels_like = merged_df['feels_like'].min()
     max_feels_like = merged_df['feels_like'].max()
-    colormap = cm.LinearColormap(colors=['blue', 'green', 'yellow', 'orange', 'red'], 
-                                 vmin=min_feels_like, vmax=max_feels_like, 
-                                 caption='Feels Like Temperature')
 
-    # Add HeatMap
-    heatmap = HeatMap(heat_data, min_opacity=0.2, radius=50, blur=10, max_zoom=1)
+    # Define your gradient based on feels_like values
+    gradient = {
+        0.0: 'blue',
+        0.5: 'green',
+        0.8: 'yellow',
+        0.9: 'orange',
+        1.0: 'red'
+        }
+    
+    normalized_data = [[row[0], row[1], (row[2] - min_feels_like) / (max_feels_like - min_feels_like)] for row in heat_data]
+    heatmap = HeatMap(normalized_data, min_opacity=min_opacity, radius=radius, blur=blur,gradient=gradient)
     heatmap_group = folium.FeatureGroup(name='Heat Map')
     heatmap_group.add_child(heatmap)
     m.add_child(heatmap_group)
@@ -249,7 +190,7 @@ if selected_city != 'Select City':
     
     # Define tags and icons for additional OSM layers
     amenities = {
-        "Hospital":{"tag": "amenity=hospital", "icon": "hospital"},
+       "Hospital":{"tag": "amenity=hospital", "icon": "hospital"},
        "Community Centres": {"tag": "amenity=community_centre", "icon": "home"},
        "Drinking Water": {"tag": "amenity=drinking_water", "icon": "tint"},
        "Parks": {"tag": "leisure=park", "icon": "tree"},
@@ -290,12 +231,7 @@ if selected_city != 'Select City':
     
     st.sidebar.header("Route Finder")
     # Sidebar inputs for start and end location
-    #start_location = st.sidebar.text_input("Start Location", "Charminar")
-    #end_location = st.sidebar.text_input("End Location", "Nandi Nagar")
-    # Button to trigger route calculation
-    # Sidebar inputs for start and end locations using st_searchbox
 
-    # Sidebar section
     with st.sidebar:
         start_location = st_searchbox(get_location_suggestions, placeholder="Start Location", key="start_location")
         end_location = st_searchbox(get_location_suggestions, placeholder="End Location", key="end_location")
@@ -480,7 +416,6 @@ fig_scatter = px.scatter(
 with col2:
     st.write("### Scatter Plot for Temperature vs. Humidity")
     st.plotly_chart(fig_scatter)
-
 
 
    
