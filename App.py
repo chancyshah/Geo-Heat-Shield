@@ -13,7 +13,7 @@ from function import get_location_suggestions, geocode_location, route_passes_hi
 
 st.set_page_config(layout="wide")
  
-uploaded_file = 'Weather_Station_Id.xlsx'  
+uploaded_file = 'E:/Geo-Heat Shield/Weather_Station_Id.xlsx'  # Replace with the path to your file
 
 df = read_excel(uploaded_file)
 
@@ -310,12 +310,14 @@ weather_df['feels_like'] = np.select(conditions, choices, default=None)
 
 if selected_city != 'Select City':
     styled_df = merged_df.copy()
+    merged_df['feels_like'] = pd.to_numeric(merged_df['feels_like'], errors='coerce')
+    feels_like_list = merged_df['feels_like'].tolist()
     styled_df['heat_index'] = merged_df.apply(
         lambda row: determine_heat_index(row['temperature'], row['humidity'])
         if pd.notna(row['temperature']) and pd.notna(row['humidity']) else "N/A",
         axis=1
     )
-
+    styled_df_new = styled_df.drop(['cityName','localityId','latitude','longitude','temperature', 'humidity', 'feels_like' , 'device_type_x','device_type_y','status','message','wind_speed'], axis=1)
     # Create a container for the layout
     container = st.container()
 
@@ -326,33 +328,46 @@ if selected_city != 'Select City':
     with col1:
         st.write("### Heat Index")
         # Apply the color mapping to the DataFrame
-        styled_df = styled_df.style.map(color_heat_index, subset=['heat_index'])
+        styled_df = styled_df_new.style.map(color_heat_index, subset=['heat_index'])
         # Display the DataFrame in the placeholder
-        st.dataframe(styled_df)
-
-    with col2:
-        st.write("### Bar Chart for Feels Like Temperature")
-        bar_chart = px.bar(merged_df, x='localityName', y='temperature', title='Temperature by Locality')
-        st.plotly_chart(bar_chart)
-
+        st.dataframe(styled_df,hide_index=True)
+    
+    # Line Chart for Temperature and Feels Like Temperature in the second row, first column
+    long_df = pd.melt(merged_df, id_vars=['localityName'], value_vars=['temperature', 'feels_like'], var_name='Metric', value_name='Value')
+    fig_line = px.line(
+        long_df,
+        x='localityName',
+        y='Value',
+        color='Metric',
+        title='Temperature and Feels Like Temperature by City',
+        labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
+        markers=True
+    )
     with col1:
-        # Create and display the line chart in the placeholder
         st.write("### Line Chart for Temperature and Feels Like Temperature")
-        line_chart = px.line(merged_df, x='localityName', y='humidity', title='Humidity by Locality')
-        st.plotly_chart(line_chart)
+        st.plotly_chart(fig_line)
+    
 
     with col2:
         st.write("### Scatter Plot for Temperature vs. Humidity")
-        # Create and display the scatter chart in the placeholder
-        scatter_chart = px.scatter(merged_df, x='temperature', y='humidity', color='localityName',
-                                   title='Temperature vs. Humidity')
+        scatter_chart = px.scatter(
+            merged_df,
+            x='temperature',
+            y='humidity',
+            color='localityName',
+            size=feels_like_list,
+            labels={'temperature': 'Temperature (°C)', 'humidity': 'Humidity (%)'},
+            hover_data={'heat_index': True},  # Correct column name and ensure it's a dictionary
+            title='Temperature vs. Humidity'
+            )
         st.plotly_chart(scatter_chart)
     
 placeholder = st.empty()
 
+weather_df_new = weather_df.drop(['temperature', 'humidity', 'feels_like'], axis=1)
+
 # Apply the color mapping to the dataframe
-styled_df = weather_df.style.map(color_heat_index, subset=['Heat Index'])
-#st.dataframe(styled_df)
+styled_df = weather_df_new.style.map(color_heat_index, subset=['Heat Index'])
 
 # Ensure the 'feels_like' column is numeric
 weather_df['feels_like'] = pd.to_numeric(weather_df['feels_like'], errors='coerce')
@@ -370,22 +385,8 @@ col1, col2 = st.columns(2)
 
 # Render styled dataframe in the first row, first column
 with col1:
-    st.write("### Heat Index")
-    st.dataframe(styled_df)
-
-# Bar Chart for Feels Like Temperature in the first row, second column
-fig_bar = px.bar(
-    weather_df,
-    x='City',
-    y='feels_like',
-    color='Heat Index',
-    title='Feels Like Temperature by City',
-    labels={'feels_like': 'Feels Like Temperature (°C)'},
-    hover_data=['temperature', 'humidity']
-)
-with col2:
-    st.write("### Bar Chart for Feels Like Temperature")
-    st.plotly_chart(fig_bar)
+    st.write("### REAL FEEL")
+    st.dataframe(styled_df,hide_index=True)
 
 # Line Chart for Temperature and Feels Like Temperature in the second row, first column
 long_df = pd.melt(weather_df, id_vars=['City'], value_vars=['temperature', 'feels_like'], var_name='Metric', value_name='Value')
