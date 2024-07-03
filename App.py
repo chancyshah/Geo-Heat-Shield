@@ -390,32 +390,34 @@ with col1:
 
 # Line Chart for Temperature and Feels Like Temperature in the second row, first column
 long_df = pd.melt(weather_df, id_vars=['City'], value_vars=['temperature', 'feels_like'], var_name='Metric', value_name='Value')
-fig_line = px.line(
-    long_df,
-    x='City',
-    y='Value',
-    color='Metric',
-    title='Temperature and Feels Like Temperature by City',
-    labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
-    markers=True
-)
+
 with col1:
     st.write("### Line Chart for Temperature and Feels Like Temperature")
+    fig_line = px.line(
+     long_df,
+     x='City',
+     y='Value',
+     color='Metric',
+     title='Temperature and Feels Like Temperature by City',
+     labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
+     markers=True
+    )
     st.plotly_chart(fig_line)
 
-# Scatter Plot for Temperature vs. Humidity in the second row, second column
-fig_scatter = px.scatter(
-    weather_df,
-    x='temperature',
-    y='humidity',
-    color='City',
-    size='feels_like',
-    title='Temperature vs. Humidity',
-    labels={'temperature': 'Temperature (°C)', 'humidity': 'Humidity (%)'},
-    hover_data=['Heat Index']
-)
+
 with col2:
     st.write("### Scatter Plot for Temperature vs. Humidity")
+    # Scatter Plot for Temperature vs. Humidity in the second row, second column
+    fig_scatter = px.scatter(
+     weather_df,
+     x='temperature',
+     y='humidity',
+     color='City',
+     size='feels_like',
+     title='Temperature vs. Humidity',
+     labels={'temperature': 'Temperature (°C)', 'humidity': 'Humidity (%)'},
+     hover_data=['Heat Index']
+     )
     st.plotly_chart(fig_scatter)
 
 
