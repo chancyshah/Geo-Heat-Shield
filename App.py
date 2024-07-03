@@ -13,7 +13,7 @@ from function import get_location_suggestions, geocode_location, route_passes_hi
 
 st.set_page_config(layout="wide")
  
-uploaded_file = 'E:/Geo-Heat Shield/Weather_Station_Id.xlsx'  # Replace with the path to your file
+uploaded_file = 'Weather_Station_Id.xlsx'  
 
 df = read_excel(uploaded_file)
 
