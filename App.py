@@ -400,7 +400,6 @@ with col1:
      color='Metric',
      title='Temperature and Feels Like Temperature by City',
      labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
-     markers=True
     )
     st.plotly_chart(fig_line)
 
