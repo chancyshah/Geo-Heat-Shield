@@ -341,7 +341,6 @@ if selected_city != 'Select City':
         color='Metric',
         title='Temperature and Feels Like Temperature by City',
         labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
-        markers=True
     )
     with col1:
         st.write("### Line Chart for Temperature and Feels Like Temperature")
