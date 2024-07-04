@@ -6,6 +6,7 @@ Geo-Heat Shield is a geospatial application built using Streamlit, designed to e
 
 - [Installation](#installation)
 - [Running the Streamlit App](#running-the-streamlit-app)
+- [Acknowledgements] (#Acknowledgements)
 - [License](#license)
 
 ## Installation
@@ -33,6 +34,18 @@ Open the Application: Streamlit will launch a local server and provide a URL (us
 Explore the Application: Use the interface provided by Streamlit to interact with the Geo-Heat Shield application.
 
 Close the Application: To stop the Streamlit server, press Ctrl + C in your terminal.
+
+## Acknowledgements
+
+Special thanks to the following services for providing valuable data:
+
+![Weather Union Logo](weatherunion-logo-dark.svg)  
+**Weather Union**: Provides weather data services.
+
+![OpenRouteService Logo](openrouteservice-logo.png)  
+**OpenRouteService**: Offers routing and mapping services.
+
+Thank you for providing valuable data!
 
 ## License
 
