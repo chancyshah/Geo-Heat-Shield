@@ -10,7 +10,7 @@ Geo-Heat Shield is a geospatial application built using Streamlit, designed to e
 - [License](#license)
 
 ## Installation
-Install Python 3.8 or higher.
+Install Python 3.11 or higher.
 
 Clone the repository
 
