@@ -458,7 +458,7 @@ st.sidebar.image('https://openrouteservice.org/dev/static/img/logo@2x.1368651.pn
 st.sidebar.markdown('**Thank you for providing valuable data!**')        
 
 with st.expander("About Geo-Heat Shield: A Geospatial Approach to Heatwave Resilience Web App"):
-     st.write(""" """)
+    st.write("""Geo-Heat Shield is a web application designed to visualize and analyze weather data, focusing on heat index values across major cities in India. It fetches near real-time weather data, calculates heat indexes, and displays them on an interactive map. Users can explore detailed city-specific analyses, view temperature and humidity charts, and calculate safe travel routes based on temperature conditions. The app also integrates data on amenities like hospitals, community centres, drinking water points, parks, gardens, clinics, and pharmacies from OpenStreetMap to enhance user experience and safety. The app aims to enhance heatwave resilience by providing actionable insights and visualizations.""")
               
 with st.expander("GeoFusionaires"):
     st.write("**Tej Chavda**")
