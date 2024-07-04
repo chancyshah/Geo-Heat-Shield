@@ -45,7 +45,7 @@ Close the Application: To stop the Streamlit server, press Ctrl + C in your term
 
 Special thanks to the following services for providing valuable data:
 
-![Weather Union Logo](weatherunion-logo-dark.svg)  
+![Weather Union Logo](weatherunion-logo.png)  
 **Weather Union**: Provides weather data services.
 
 ![OpenRouteService Logo](openrouteservice-logo.png)  
