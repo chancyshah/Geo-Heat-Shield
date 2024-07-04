@@ -6,7 +6,7 @@ Geo-Heat Shield is a geospatial application built using Streamlit, designed to e
 
 - [Installation](#installation)
 - [Running the Streamlit App](#running-the-streamlit-app)
-- [Acknowledgements] (#Acknowledgements)
+- [Acknowledgements](#Acknowledgements)
 - [License](#license)
 
 ## Installation
