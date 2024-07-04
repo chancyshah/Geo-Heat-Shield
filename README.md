@@ -53,9 +53,4 @@ Under the following terms:
 - **Attribution**: You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 - **NonCommercial**: You may not use the material for commercial purposes.
 
-  
-### Explanation:
-- **Local Image Hosting**: The `![CC BY-NC](by-nc.png)` Markdown syntax now references an image (`by-nc.png`) located in the `images` directory within your project. Adjust the path (`images/by-nc.png`) as per your actual directory structure.
-- **Relative Path**: Using a relative path ensures that the image is correctly displayed regardless of where the README file is viewed from, as long as the image file (`by-nc.png`) is included in your project repository.
-
-By following these steps, you ensure that the Creative Commons license button image is reliably displayed in your README file, improving clarity and adherence to best practices for documentation in software projects.
+`![CC BY-NC](images/by-nc.png)`
