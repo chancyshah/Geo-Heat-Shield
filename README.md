@@ -6,13 +6,19 @@ Geo-Heat Shield is a geospatial application built using Streamlit, designed to e
 
 - [Installation](#installation)
 - [Running the Streamlit App](#running-the-streamlit-app)
-- [Acknowledgements](#Acknowledgements)
+- [Acknowledgements](#acknowledgements)
 - [License](#license)
 
 ## Installation
+Install Python 3.8 or higher.
 
+Clone the repository
+
+Navigate to the project directory: 
+```bash
+cd Geo-Heat-Shield
+```
 To install the necessary dependencies, run the following command:
-
 ```bash
 pip install -r requirements.txt
 ```
