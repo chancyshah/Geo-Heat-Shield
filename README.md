@@ -45,16 +45,16 @@ Close the Application: To stop the Streamlit server, press Ctrl + C in your term
 
 Special thanks to the following services for providing valuable data:
 
-![Weather Union Logo](weatherunion-logo.png)  
+![Weather Union Logo](image/weatherunion-logo.png)  
 **Weather Union**: Provides weather data services.
 
-![OpenRouteService Logo](openrouteservice-logo.png)  
+![OpenRouteService Logo](image/openrouteservice-logo.png)  
 **OpenRouteService**: Offers routing and mapping services.
 
-![Streamlit Logo](streamlit-logo.png)  
+![Streamlit Logo](image/streamlit-logo.png)  
 **Streamlit**: Powers the interactive app interface.
 
-![OpenStreetMap Logo](Openstreetmap_logo.png)  
+![OpenStreetMap Logo](image/Openstreetmap_logo.png)  
 **OpenStreetMap**: Provides map data for visualizations and analysis.
 
 Thank you all for providing valuable data and tools!
@@ -79,4 +79,4 @@ Under the following terms:
 - **Attribution**: You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 - **NonCommercial**: You may not use the material for commercial purposes.
 
-![CC BY-NC](https://github.com/chancyshah/Geo-Heat-Shield/blob/45af33ecb0b827b14f41fc48c458baa1822426f6/by-nc.png)
+![CC BY-NC](image/by-nc.png)
