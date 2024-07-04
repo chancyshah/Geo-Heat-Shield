@@ -370,7 +370,6 @@ if selected_city != 'Select City' and not weather_df.empty:
         y='Value',
         color='Metric',
         labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
-        markers=True
     )
     with col1:
         st.write("### Line Chart for Temperature and Feels Like Temperature - Temperature vs. Feels Like: What's the Difference?")
@@ -428,7 +427,6 @@ if not weather_df.empty:
             y='Value',
             color='Metric',
             labels={'Value': 'Temperature (°C)', 'Metric': 'Metric'},
-            markers=True
             )
         st.plotly_chart(fig_line)
 
