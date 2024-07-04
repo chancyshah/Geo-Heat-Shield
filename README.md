@@ -53,4 +53,4 @@ Under the following terms:
 - **Attribution**: You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 - **NonCommercial**: You may not use the material for commercial purposes.
 
-`![CC BY-NC](images/by-nc.png)`
+![CC BY-NC](https://github.com/chancyshah/Geo-Heat-Shield/blob/45af33ecb0b827b14f41fc48c458baa1822426f6/by-nc.png)
