@@ -54,7 +54,11 @@ Special thanks to the following services for providing valuable data:
 ![Streamlit Logo](streamlit-logo.png)  
 **Streamlit**: Powers the interactive app interface.
 
+![OpenStreetMap Logo](Openstreetmap_logo.png)  
+**OpenStreetMap**: Provides map data for visualizations and analysis.
+
 Thank you all for providing valuable data and tools!
+
 
 ## License
 
