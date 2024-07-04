@@ -51,7 +51,10 @@ Special thanks to the following services for providing valuable data:
 ![OpenRouteService Logo](openrouteservice-logo.png)  
 **OpenRouteService**: Offers routing and mapping services.
 
-Thank you for providing valuable data!
+![Streamlit Logo](streamlit-logo.png)  
+**Streamlit**: Powers the interactive app interface.
+
+Thank you all for providing valuable data and tools!
 
 ## License
 
