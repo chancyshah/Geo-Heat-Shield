@@ -1,6 +1,6 @@
 # Geo-Heat Shield: A Geospatial Approach to Heatwave Resilience
 
-Geo-Heat Shield is a geospatial application built using Streamlit, designed to enhance heatwave resilience using data from various weather stations.
+Geo-Heat Shield is a geospatial web application designed to visualize and analyze weather data, focusing on heat index values across major cities in India. It fetches near real-time weather data, calculates heat indexes, and displays them on an interactive map. Users can explore detailed city-specific analyses, view temperature and humidity charts, and calculate safe travel routes based on temperature conditions. The app aims to enhance heatwave resilience by providing actionable insights and visualizations.
 
 ## Table of Contents
 
