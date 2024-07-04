@@ -10,7 +10,7 @@ import pandas as pd
 # Weather API URL and headers
 url = 'https://weatherunion.com/gw/weather/external/v0/get_weather_data'
 headers = {
-    'x-zomato-api-key': '2e5f74906b857b8d317112260f2b1fab'
+    'x-zomato-api-key': '46e4d9836d551bc03d61c2be23556f3c'
 }
 
 api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'
@@ -19,7 +19,7 @@ api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'
 def get_weather_data_for_localities(df):
     url = 'https://weatherunion.com/gw/weather/external/v0/get_locality_weather_data'
     headers = {
-        'x-zomato-api-key': '2e5f74906b857b8d317112260f2b1fab'
+        'x-zomato-api-key': '46e4d9836d551bc03d61c2be23556f3c'
     }
     
     weather_data_list = []
@@ -38,16 +38,6 @@ def get_weather_data_for_localities(df):
     # Create a DataFrame from weather_data_list
     weather_df = pd.DataFrame(weather_data_list)
     
-    # Extract specific fields from locality_weather_data dictionary
-    weather_df['temperature'] = weather_df['locality_weather_data'].apply(lambda x: x.get('temperature', None))
-    weather_df['humidity'] = weather_df['locality_weather_data'].apply(lambda x: x.get('humidity', None))
-    weather_df['wind_speed'] = weather_df['locality_weather_data'].apply(lambda x: x.get('wind_speed', None))
-        
-    # Drop the original 'locality_weather_data' column
-    weather_df.drop(columns=['locality_weather_data'], inplace=True)
-    
-    # Drop rows where temperature or humidity is NaN
-    weather_df.dropna(subset=['temperature', 'humidity'], inplace=True)
     return weather_df
 
 def color_heat_index(val):
