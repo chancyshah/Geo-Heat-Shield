@@ -10,7 +10,7 @@ import pandas as pd
 # Weather API URL and headers
 url = 'https://weatherunion.com/gw/weather/external/v0/get_weather_data'
 headers = {
-    'x-zomato-api-key': '46e4d9836d551bc03d61c2be23556f3c'
+    'x-zomato-api-key': 'ea8e22de2167e4ad916c25ea2f616447'
 }
 
 api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'
@@ -19,7 +19,7 @@ api_key = '5b3ce3597851110001cf624852bc21a822034504a103585fcd59c3f2'
 def get_weather_data_for_localities(df):
     url = 'https://weatherunion.com/gw/weather/external/v0/get_locality_weather_data'
     headers = {
-        'x-zomato-api-key': '46e4d9836d551bc03d61c2be23556f3c'
+        'x-zomato-api-key': 'ea8e22de2167e4ad916c25ea2f616447'
     }
     
     weather_data_list = []
