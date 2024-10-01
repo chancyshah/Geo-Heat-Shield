@@ -4,6 +4,6 @@ plotly==5.1.0
 streamlit-searchbox==0.1.13
 pandas==2.1.4
 numpy==1.24.3
-requests==2.31.0
+requests>=2.32.0
 branca==0.6.0
 openpyxl==3.1.5
